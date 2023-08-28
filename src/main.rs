@@ -1,5 +1,5 @@
 use clap::Parser;
-use std::net::{Ipv4Addr, SocketAddr};
+use std::{net::{Ipv4Addr, SocketAddr, IpAddr}, str::FromStr};
 use trust_dns_client::{udp::UdpClientConnection, client::{SyncClient, Client}, rr::{Name, DNSClass, RecordType, Record}};
 use whois_rust::{WhoIs, WhoIsLookupOptions};
 
@@ -11,7 +11,7 @@ use whois_rust::{WhoIs, WhoIsLookupOptions};
 struct Cli {
     #[arg(short, long, help="Domain name to lookup")]
     domain: Name,
-    #[arg(short, long, help="DNS-resolver to use (default is 1.1.1.1)", default_value = "1.1.1.1")]
+    #[arg(short, long, help="DNS-resolver to use (default is Quad9 - 9.9.9.9)", default_value = "9.9.9.9")]
     resolver: Ipv4Addr,
     /*#[arg(short, long, help="Get information on what technologies site is based on")]
     tech: String,*/
@@ -40,6 +40,21 @@ fn query_records(client: &SyncClient<UdpClientConnection>, domain: &Name, record
     }
 }
 
+
+fn reverse_zone(ip_address: &IpAddr) -> Name {
+    match ip_address {
+        IpAddr::V4(ipv4) => {
+            let octets: Vec<String> = ipv4.octets().iter().map(|&byte| byte.to_string()).collect();
+            let reversed_octets = octets.into_iter().rev().collect::<Vec<_>>().join(".");
+            Name::from_str(&format!("{}.in-addr.arpa.", reversed_octets)).unwrap()
+        }
+        IpAddr::V6(ipv6) => {
+            let segments: Vec<String> = ipv6.segments().iter().map(|&segment| format!("{:x}", segment)).collect();
+            let reversed_segments = segments.into_iter().rev().collect::<Vec<_>>().join(".");
+            Name::from_str(&format!("{}.ip6.arpa.", reversed_segments)).unwrap()
+        }
+    }
+}
 
 fn main() {
     let cli = Cli::parse();
