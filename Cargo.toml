@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.3.22", features = ["derive"] }
 trust-dns-client = "0.23.0"
+trust-dns-resolver = "0.23.0"
 whois-rust = "1.5.1"
