@@ -4,8 +4,9 @@ use std::{
     str::FromStr,
 };
 use trust_dns_client::{
+    error::ClientError,
     client::{Client, SyncClient},
-    rr::{DNSClass, Name, RecordType},
+    rr::{DNSClass, Name, RecordType, Record},
     udp::UdpClientConnection,
 };
 use trust_dns_resolver::{
@@ -13,6 +14,9 @@ use trust_dns_resolver::{
     Resolver,
 };
 use whois_rust::{WhoIs, WhoIsLookupOptions};
+
+use crate::report::Report;
+mod report;
 
 #[derive(Parser)]
 #[command(name = "auf")]
@@ -32,7 +36,7 @@ struct Cli {
 }
 
 fn get_whois_info(domain: Name) -> String {
-    //TODO: refactor `expect`
+    //FIXME: remove `expect`
     let domain = domain.to_string();
     let whois =
         WhoIs::from_path("servers.json").expect("Unable to locate required file \"server.json\"");
@@ -41,21 +45,23 @@ fn get_whois_info(domain: Name) -> String {
         .expect("No whois server is known for this kind of object")
 }
 
-fn query_records(client: &SyncClient<UdpClientConnection>, domain: &Name, record_type: RecordType) {
+fn query_records(client: &SyncClient<UdpClientConnection>, domain: &Name, record_type: RecordType) -> Result<Vec<Record>, ClientError>{
+    let mut records: Vec<Record> = vec![];
+    //TODO: add support for other DNS classes
     match client.query(domain, DNSClass::IN, record_type) {
         Ok(response) => {
             println!("Querying {} records:", record_type);
             for record in response.answers() {
-                println!("{}", record);
+                records.push(record.clone());
             }
+            Ok(records)
         }
-        Err(err) => {
-            eprintln!("Error querying {} records: {:?}", record_type, err);
-        }
+        Err(err) => Err(err)
     }
 }
 
 fn reverse_zone(ip_address: IpAddr) -> Name {
+    //TODO: remove `unwrap`
     match ip_address {
         IpAddr::V4(ipv4) => {
             let octets: Vec<String> = ipv4.octets().iter().map(|&byte| byte.to_string()).collect();
@@ -78,6 +84,7 @@ fn main() {
     let cli = Cli::parse();
     let resolver = cli.resolver;
     let domain = cli.domain;
+    //FIXME: domain names should always end with dot
     let record_types = [
         RecordType::A,
         RecordType::AAAA,
@@ -97,17 +104,30 @@ fn main() {
     let conn = UdpClientConnection::new(resolver_addr).unwrap();
     let client = SyncClient::new(conn);
 
+    /*  
+        FIXME: Refactor usage of trust_dns_resolver and trust_dns_client, better to use only one of them if possible
+        TODO: remove `unwrap`
+    */
+    let mut records: Vec<Record> = vec![];
     for record_type in record_types {
+        let mut domain = domain.clone();
         if record_type == RecordType::PTR {
             let resolver = Resolver::new(ResolverConfig::quad9(), ResolverOpts::default()).unwrap();
             let response = resolver.lookup_ip(domain.to_string()).unwrap();
             let address = response.iter().next().expect("no addresses returned!");
-            let domain = reverse_zone(address);
-            query_records(&client, &domain, record_type);
-        } else {
-            query_records(&client, &domain, record_type);
+            domain = reverse_zone(address);
+        }
+        match query_records(&client, &domain, record_type) {
+            Ok(mut vec) => {
+                records.append(&mut vec);
+            }
+            Err(_err) => ()
+
         }
     }
 
-    println!("{}", get_whois_info(domain));
+
+    let whois_info = get_whois_info(domain);
+    println!("{}", Report{whois_info, records})
+    //  TODO: implement a nicer
 }
