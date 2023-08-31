@@ -50,7 +50,6 @@ fn query_records(client: &SyncClient<UdpClientConnection>, domain: &Name, record
     //TODO: add support for other DNS classes
     match client.query(domain, DNSClass::IN, record_type) {
         Ok(response) => {
-            println!("Querying {} records:", record_type);
             for record in response.answers() {
                 records.push(record.clone());
             }
@@ -109,6 +108,7 @@ fn main() {
         TODO: remove `unwrap`
     */
     let mut records: Vec<Record> = vec![];
+    println!("Querying records...");
     for record_type in record_types {
         let mut domain = domain.clone();
         if record_type == RecordType::PTR {
@@ -126,8 +126,7 @@ fn main() {
         }
     }
 
-
+    println!("Querying whois...");
     let whois_info = get_whois_info(domain);
     println!("{}", Report{whois_info, records})
-    //  TODO: implement a nicer
 }

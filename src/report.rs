@@ -13,7 +13,7 @@ impl Display for Report {
             writeln!(f,
                 "Found {}", record)?;
         }
-        writeln!(f, "\nWHOIS Info:{}", self.whois_info)?;
+        writeln!(f, "\nWHOIS Info:\n{}", self.whois_info)?;
         Ok(())
     }
 }
