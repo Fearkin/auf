@@ -51,8 +51,7 @@ For now, go to [Releases](https://github.com/Fearkin/auf/releases/)
 ### Building from source
 auf is written in Rust, so you'll need to grab a Rust installation in order to compile it. In general, auf tracks the latest stable release of the Rust compiler.
 
-To build auf:
-For linux:
+To build auf for Linux:
 ```
 $ git clone https://github.com/Fearkin/auf
 $ cargo build --release
