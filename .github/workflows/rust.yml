@@ -1,0 +1,22 @@
+name: Rust CI
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "docs/**"
+
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - "docs/**"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Rust 🦀
+        uses: rust-lang/simpleinfra/github-actions/simple-ci@master
+        with:
+          check_fmt: true
