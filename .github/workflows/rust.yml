@@ -1,22 +1,15 @@
-name: Rust CI
-on:
-  push:
-    branches: [master]
-    paths-ignore:
-      - "docs/**"
+name: CI
 
-  pull_request:
-    branches: [master]
-    paths-ignore:
-      - "docs/**"
+on: [push, pull_request]
+
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-
-      - name: Set up Rust 🦀
-        uses: rust-lang/simpleinfra/github-actions/simple-ci@master
-        with:
-          check_fmt: true
+      - run: rustup default ${{ matrix.channel }}
+      - uses: rust-lang/simpleinfra/github-actions/simple-ci@master
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        channel: [stable, beta, nightly]
