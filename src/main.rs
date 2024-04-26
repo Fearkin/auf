@@ -47,7 +47,6 @@ fn get_whois_info(domain: Name) -> String {
 
 fn query_records(client: &SyncClient<UdpClientConnection>, domain: &Name, record_type: RecordType) -> Result<Vec<Record>, ClientError>{
     let mut records: Vec<Record> = vec![];
-    //TODO: add support for other DNS classes
     match client.query(domain, DNSClass::IN, record_type) {
         Ok(response) => {
             for record in response.answers() {
